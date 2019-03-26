@@ -219,10 +219,6 @@ int main(int argc, char* args[]){
 	print_ram(&chip8);
 
 
-	// chip8.start();
-	// chip8.execute_next_op();
-
-
 
 	//The image we will load and show on the screen
 	SDL_Surface* gameDisplaySurface = NULL;

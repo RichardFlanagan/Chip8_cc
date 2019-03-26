@@ -159,43 +159,6 @@ std::string debug_get_op_hex(uint16_t op){
 	return ss.str();
 }
 
-// std::string debug_get_ram_hex(Chip8 *chip8){
-// 	int per_row = 32;
-// 	std::stringstream ss;
-	
-// 	for (int i = 0; i < 4096/per_row; ++i){
-
-// 		if (i*per_row < 10){
-// 			ss << "   ";
-// 		} else if (i*per_row < 100){
-// 			ss << "  ";
-// 		} else if (i*per_row < 1000){
-// 			ss << " ";
-// 		}
-// 		ss << std::dec << i*per_row << " | ";
-
-
-// 		for (int j = 0; j < per_row; ++j){
-// 			uint8_t op = (uint8_t)chip8->get_at_memory_address((i*per_row+j));
-			
-// 			if(op < 16){
-// 				ss << "0" << std::hex << (int)op;
-// 			} else if(op == 0){
-// 				ss << "00";
-// 			} else{
-// 				ss << std::hex << (int)op;
-// 			}
-// 			if(j%2 == 1){
-// 				ss << " ";
-// 			}
-// 		}
-// 		ss << std::endl;
-// 	}
-
-// 	return ss.str();
-// }
-
-
 std::string debug_get_op_bin(uint16_t op){
 	std::stringstream ss;
 	std::bitset<16> x(op);
@@ -270,6 +233,7 @@ void Chip8::interpret(uint16_t op){
 	// Clear the display.
 	else if ((op & 0xFFFF) == 0x00E0){
 		std::cout << " : Clear the display";
+
 		fill_display(0);
 	} 
 
@@ -277,6 +241,7 @@ void Chip8::interpret(uint16_t op){
 	// Return from a subroutine.
 	else if (op == 0x00EE){
 		std::cout << " : Return from a subroutine";
+		// todo
 	}
 
 	// 0nnn - SYS addr
@@ -304,6 +269,7 @@ void Chip8::interpret(uint16_t op){
 	else if ((op & 0xF000) == 0x2000){
 		uint16_t addr = op & 0x0FFF;
 		std::cout << " : Call subroutine at " << addr;
+		// todo
 	}	
 
 	// 3xkk - SE Vx, byte
@@ -339,6 +305,10 @@ void Chip8::interpret(uint16_t op){
 		uint8_t y = (op & 0x00F0) >> 4;
 
 		std::cout << " : Skip next instruction if Vx = Vy";
+
+		if (V[x] == V[y]){
+			PC += 2;
+		}
 	}	
 
 	// 6xkk - LD Vx, byte
@@ -351,14 +321,6 @@ void Chip8::interpret(uint16_t op){
 		std::cout << " | V" << (int)x << " = " << (int)kk << std::endl;
 
 		V[x] = kk;
-
-		// if (debug){
-		// 	std::ios_base::fmtflags f( std::cout.flags() );
-		// 	for (int i = 0; i < 16; ++i){
-		// 		std::cout << "V" << i << " = " << std::dec << (int)V[i] << std::endl;
-		// 	}
-		// 	std::cout.flags( f );
-		// }
 	}
 
 	// 7xkk - ADD Vx, byte
@@ -368,10 +330,8 @@ void Chip8::interpret(uint16_t op){
 		uint8_t kk = op & 0x00FF;
 
 		std::cout << " : Set Vx = Vx + kk" << "@V" << (int)x << "@" << (int)kk;
-		// std::cout << "#" << (int)V[x] << std::endl;
-		V[x] = V[x] + kk;
-		// std::cout << "#" << (int)V[x] << std::endl;
 
+		V[x] = V[x] + kk;
 	}
 
 	// 8xy0 - LD Vx, Vy
@@ -392,6 +352,8 @@ void Chip8::interpret(uint16_t op){
 		uint8_t y = (op & 0x00F0) >> 4;
 
 		std::cout << " : Set Vx = Vx OR Vy";
+
+		V[x] = V[x] | V[y];
 	}
 
 	// 8xy2 - AND Vx, Vy
@@ -401,6 +363,8 @@ void Chip8::interpret(uint16_t op){
 		uint8_t y = (op & 0x00F0) >> 4;
 
 		std::cout << " : Set Vx = Vx AND Vy";
+
+		V[x] = V[x] & V[y];
 	}
 
 	// 8xy3 - XOR Vx, Vy
@@ -410,6 +374,8 @@ void Chip8::interpret(uint16_t op){
 		uint8_t y = (op & 0x00F0) >> 4;
 
 		std::cout << " : Set Vx = Vx XOR Vy";
+		
+		V[x] = V[x] ^ V[y];
 	}
 
 	// 8xy4 - ADD Vx, Vy
@@ -419,6 +385,9 @@ void Chip8::interpret(uint16_t op){
 		uint8_t y = (op & 0x00F0) >> 4;
 
 		std::cout << " : Set Vx = Vx + Vy, set VF = carry";
+
+		V[x] = V[x] + V[y];
+		V[0xF] = 1;
 	}
 
 	// 8xy5 - SUB Vx, Vy
@@ -428,6 +397,9 @@ void Chip8::interpret(uint16_t op){
 		uint8_t y = (op & 0x00F0) >> 4;
 
 		std::cout << " : Set Vx = Vx - Vy, set VF = NOT borrow";
+
+		V[x] = V[x] - V[y];
+		V[0xF] = 0;
 	}
 
 	// 8xy6 - SHR Vx {, Vy}
@@ -464,6 +436,10 @@ void Chip8::interpret(uint16_t op){
 		uint8_t y = (op & 0x00F0) >> 4;
 
 		std::cout << " : Skip next instruction if Vx != Vy";
+
+		if (V[x] != V[y]){
+			PC += 2;
+		}
 	}
 
 	// Annn - LD I, addr
@@ -472,8 +448,7 @@ void Chip8::interpret(uint16_t op){
 		uint16_t addr = op & 0x0FFF;
 
 		std::cout << " : Set I = nnn";
-		std::cout << std::dec << "@" << I << "@" << addr << "@" << (int)memory[I] << "@" << (int)memory[addr];
-
+		// std::cout << std::dec << "@" << I << "@" << addr << "@" << (int)memory[I] << "@" << (int)memory[addr];
 
 		I = addr;
 	}
@@ -495,6 +470,7 @@ void Chip8::interpret(uint16_t op){
 		uint8_t kk = op & 0x00FF;
 
 		std::cout << " : Set Vx = random byte AND kk";
+		// todo
 	}
 
 	// Dxyn - DRW Vx, Vy, nibble
@@ -522,85 +498,8 @@ void Chip8::interpret(uint16_t op){
 					display[pixel_index] = (int)binary[i] ^ display[pixel_index];
 				}
 			}
-
-			
 		}
-
-		std::cout << "\n" << (int)x << ":" << (int)y << " N=" << (int)n << std::endl;
-
-		std::cout << debug_get_op_bin(op) << std::endl;
-		std::cout << debug_get_op_bin(0x0F00) << std::endl;
-		std::cout << (int)x << std::endl << std::endl;
-
-		std::cout << debug_get_op_bin(op) << std::endl;
-		std::cout << debug_get_op_bin(0x00F0) << std::endl;
-		std::cout << (int)y << std::endl;
-
-
-
-
-		// Draw lines
-		// for (int i = 0; i < n; ++i){
-		// 	int pos_offset = V[y]*get_display_width() + V[x];
-		// 	uint8_t sprite_byte = memory[i];
-		// 	std::string binary = std::bitset<8>(sprite_byte).to_string();
-
-		// 	for (int j = 0; j < 8; ++j){
-		// 		// int pixel_index = (x+y*get_display_width()) + (i + j*get_display_width());
-
-		// 		int base_index = i*get_display_width() + j;
-
-		// 		//
-		// 		// LAST STOPPPED HERE
-		// 		// DRAW ISNT WORKING CORRECTLY
-		// 		//
-
-
-		// 		if (binary[i] == '1'){
-		// 			display[base_index+pos_offset] = (int)binary[i];
-		// 		}
-		// 	}
-
-
-			// Draw bits
-			// for (int j = 0; j < 8; ++j){
-				// int base_index = i*get_display_width() + j;
-				// int pos_offset = V[y]*get_display_width() + V[x];
-
-				// int disp_pos = base_index + pos_offset;
-				// int mem_pos = base_index + I;
-
-
-				// if(display[disp_pos] && memory[mem_pos]){
-				// 	V[0x0F] = 1;
-				// }
-
-
-
-			// 	display[disp_pos] = display[disp_pos] ^ memory[mem_pos];
-			// }
-
-		// }
-
-		// draw_sprite(I, n, x, y);
 	}
-
-	// void Chip8::draw_sprite(uint16_t address, uint8_t length, uint8_t x, uint8_t y){
-	
-	// for (int j = 0; j < length; ++j){
-
-	// 	uint8_t aa = get_at_memory_address(address+j);
-	// 	std::string binary = std::bitset<8>(aa).to_string();
-
-	// 	for (int i = 0; i < 8; ++i){
-	// 		int pixel_index = (x+y*get_display_width()) + (i + j*get_display_width());
-	// 		if (binary[i] == '1'){
-	// 			display[pixel_index] = (int)binary[i];
-	// 		}
-	// 	}
-	// }
-// }
-
 
 	// Ex9E - SKP Vx
 	// Skip next instruction if key with the value of Vx is pressed.
@@ -608,6 +507,7 @@ void Chip8::interpret(uint16_t op){
 		uint8_t x = (op & 0x0F00) >> 8;
 
 		std::cout << " : Skip next instruction if key with the value of Vx is pressed";
+		// todo
 	}
 
 	// ExA1 - SKNP Vx
@@ -616,6 +516,7 @@ void Chip8::interpret(uint16_t op){
 		uint8_t x = (op & 0x0F00) >> 8;
 
 		std::cout << " : Skip next instruction if key with the value of Vx is not pressed";
+		// todo
 	}
 
 	// Fx07 - LD Vx, DT
@@ -624,6 +525,8 @@ void Chip8::interpret(uint16_t op){
 		uint8_t x = (op & 0x0F00) >> 8;
 
 		std::cout << " : Set Vx = delay timer value";
+
+		V[x] = delay_timer;
 	}
 
 	// Fx0A - LD Vx, K
@@ -632,6 +535,7 @@ void Chip8::interpret(uint16_t op){
 		uint8_t x = (op & 0x0F00) >> 8;
 
 		std::cout << " : Wait for a key press, store the value of the key in Vx";
+		// todo
 	}
 
 	// Fx15 - LD DT, Vx
@@ -640,6 +544,8 @@ void Chip8::interpret(uint16_t op){
 		uint8_t x = (op & 0x0F00) >> 8;
 
 		std::cout << " : Set delay timer = Vx";
+
+		delay_timer = V[x];
 	}
 
 	// Fx18 - LD ST, Vx
@@ -648,6 +554,8 @@ void Chip8::interpret(uint16_t op){
 		uint8_t x = (op & 0x0F00) >> 8;
 
 		std::cout << " : Set sound timer = Vx";
+
+		sound_timer = V[x];
 	}
 
 	// Fx1E - ADD I, Vx
@@ -656,6 +564,8 @@ void Chip8::interpret(uint16_t op){
 		uint8_t x = (op & 0x0F00) >> 8;
 
 		std::cout << " : Set I = I + Vx";
+
+		I = I + V[x];
 	}
 
 	// Fx29 - LD F, Vx
@@ -664,6 +574,7 @@ void Chip8::interpret(uint16_t op){
 		uint8_t x = (op & 0x0F00) >> 8;
 
 		std::cout << " : Set I = location of sprite for digit Vx";
+		// todo
 	}
 
 	// Fx33 - LD B, Vx
@@ -672,6 +583,7 @@ void Chip8::interpret(uint16_t op){
 		uint8_t x = (op & 0x0F00) >> 8;
 
 		std::cout << " : Store BCD representation of Vx in memory locations I, I+1, and I+2";
+		// todo
 	}
 
 	// Fx55 - LD [I], Vx
@@ -680,6 +592,10 @@ void Chip8::interpret(uint16_t op){
 		uint8_t x = (op & 0x0F00) >> 8;
 
 		std::cout << " : Store registers V0 through Vx in memory starting at location I";
+	
+		for (int i = 0; i < 0xF; ++i){
+			memory[I+i] = V[i];
+		}
 	}
 
 	// Fx65 - LD Vx, [I]
@@ -688,6 +604,10 @@ void Chip8::interpret(uint16_t op){
 		uint8_t x = (op & 0x0F00) >> 8;
 
 		std::cout << " : Read registers V0 through Vx from memory starting at location I";
+		
+		for (int i = 0; i < 0xF; ++i){
+			V[i] = memory[I+i];
+		}
 	}
 
 	std::cout << std::endl;	
