@@ -7,12 +7,13 @@
 #include <streambuf>
 #include <vector>
 
+#include <SDL2/SDL_ttf.h>
+
 
 const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 480;
 
-
-void load_rom_file(Chip8 *chip8, std::string rom_file){
+void load_file_to_memory(Chip8 *chip8, std::string rom_file, uint16_t memory_offset){
 	std::ifstream is (rom_file, std::ifstream::binary);
 
 	if (is){
@@ -30,7 +31,7 @@ void load_rom_file(Chip8 *chip8, std::string rom_file){
 	   	}
 
 	    chip8->set_memory_block(
-	    	(uint16_t) 0x0200,
+	    	(uint16_t) memory_offset,
 	    	buffer_int,
 	    	(uint16_t) length);
 	
@@ -39,39 +40,6 @@ void load_rom_file(Chip8 *chip8, std::string rom_file){
 		is.close();
 	}
 }
-
-void load_sprites_file(Chip8 *chip8){
-	std::string spr = "../src/sprites.txt";
-	std::ifstream is(spr, std::ifstream::binary);
-
-	if (is){
-	    // Get length of file:
-	    is.seekg(0, is.end);
-	    int length = is.tellg();
-	    is.seekg(0, is.beg);
-	
-		char* buffer = new char[length];
-	   	is.read(buffer,length);
-
-	   	uint8_t* buffer_int = new uint8_t[length];
-	    for (int i = 0; i < length; ++i){
-			buffer_int[i] = (uint8_t)buffer[i];
-	   	}
-
-	    chip8->set_memory_block(
-	    	(uint16_t) 0x0000,
-	    	buffer_int,
-	    	(uint16_t) length);
-	
-	    delete[] buffer;
-	    delete[] buffer_int;
-		is.close();
-	}else {
-	 	std::cout << "failed to load sprites" << std::endl;
-
-	}
-}
-
 
 
 void print_ram(Chip8 *chip8){
@@ -212,11 +180,14 @@ int main(int argc, char* args[]){
 	int display_ratio = 4;
 	SDL_Rect chip8_location{200, 200, chip8.get_display_width()*display_ratio, chip8.get_display_height()*display_ratio};
 
-	load_sprites_file(&chip8);
+	// Load sprites
+	load_file_to_memory(&chip8, "../src/sprites.txt", 0x0000);
 	// draw_all_sprites(&chip8);
 
-	load_rom_file(&chip8, "../roms/programs/IBM Logo.ch8");
-	print_ram(&chip8);
+	// Load ROM
+	load_file_to_memory(&chip8, "../roms/programs/IBM Logo.ch8", 0x0200);
+
+	// print_ram(&chip8);
 
 
 
@@ -237,24 +208,6 @@ int main(int argc, char* args[]){
 			printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
 			return 1;
 		}
-		// else{
-		// 	//Get window surface
-		// 	screenSurface = SDL_GetWindowSurface(window);
-
-		// 	//Fill the surface black
-		// 	SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0x30, 0x30, 0x30));
-		// 	SDL_FillRect(gameDisplaySurface, NULL, SDL_MapRGB(gameDisplaySurface->format, 0x00, 0x00, 0x00));
-
-		// 	// Draw the Chip8 screen
-  //           draw_chip8_display(gameDisplaySurface, &chip8, display_ratio);
-  //           SDL_BlitSurface(gameDisplaySurface, NULL, screenSurface, &chip8_location);
-
-		// 	//Update the surface
-		// 	SDL_UpdateWindowSurface(window);
-
-		// 	//Wait two seconds
-		// 	SDL_Delay(1000);
-		// }
 	}
 
 	//Get window surface
